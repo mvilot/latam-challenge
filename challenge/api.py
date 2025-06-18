@@ -7,7 +7,11 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import numpy as np
 
-app = FastAPI()
+app = FastAPI(
+    title="Flight Delay Prediction API",
+    description="API para predecir probabilidad de atraso de vuelos",
+    version="1.0.0"
+)
 model = DelayModel()
 
 # Configuración de logging
@@ -84,6 +88,7 @@ async def predict(data: Dict[str, Any]) -> Dict[str, List[int]]:
         logger.error(f"Error inesperado: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error interno del servidor")
 
-@app.get("/health", status_code=200)
+@app.get("/health", status_code=200, include_in_schema=False)
 async def health_check() -> Dict[str, str]:
+    """Endpoint para health checks (K8s, Cloud Run, etc.)"""
     return {"status": "OK"}
