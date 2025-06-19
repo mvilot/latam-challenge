@@ -1,45 +1,35 @@
-.ONESHELL:
-ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/pip').exists(): print('.venv/bin/')")
+# Configuración de Cloud Run
+PROJECT_ID = latam-challenge-2025
+IMAGE_NAME = flight-delay-api
+REGION = us-central1
+API_URL = https://flight-delay-api-vbub4dnmdq-uc.a.run.app  # <<< TU URL AQUÍ
 
-.PHONY: help
-help:             	## Show the help.
-	@echo "Usage: make <target>"
-	@echo ""
-	@echo "Targets:"
-	@fgrep "##" Makefile | fgrep -v fgrep
+# Comandos principales
+.PHONY: deploy test all
 
-.PHONY: venv
-venv:			## Create a virtual environment
-	@echo "Creating virtualenv ..."
-	@rm -rf .venv
-	@python3 -m venv .venv
-	@./.venv/bin/pip install -U pip
-	@echo
-	@echo "Run 'source .venv/bin/activate' to enable the environment"
+deploy:
+    @echo "Desplegando la API..."
+    gcloud run deploy $(IMAGE_NAME) \
+        --image gcr.io/$(PROJECT_ID)/$(IMAGE_NAME) \
+        --platform managed \
+        --region $(REGION) \
+        --allow-unauthenticated \
+        --memory 512Mi \
+        --timeout 300
 
-.PHONY: install
-install:		## Install dependencies
-	pip install -r requirements-dev.txt
-	pip install -r requirements-test.txt
-	pip install -r requirements.txt
+test:
+    @echo "Ejecutando TODAS las pruebas..."
+    python -m pytest tests/ -v
 
-STRESS_URL = http://127.0.0.1:8000 
-.PHONY: stress-test
 stress-test:
-	# change stress url to your deployed app 
-	mkdir reports || true
-	locust -f tests/stress/api_stress.py --print-stats --html reports/stress-test.html --run-time 60s --headless --users 100 --spawn-rate 1 -H $(STRESS_URL)
+    @echo "Ejecutando prueba de estrés con Locust..."
+    locust -f tests/stress_test.py --host=$(API_URL) --users 100 --spawn-rate 10
 
-.PHONY: model-test
-model-test:			## Run tests and coverage
-	mkdir reports || true
-	pytest --cov-config=.coveragerc --cov-report term --cov-report html:reports/html --cov-report xml:reports/coverage.xml --junitxml=reports/junit.xml --cov=challenge tests/model
+# Monitoreo
+logs:
+    gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=$(IMAGE_NAME)" --limit 100
 
-.PHONY: api-test
-api-test:			## Run tests and coverage
-	mkdir reports || true
-	pytest --cov-config=.coveragerc --cov-report term --cov-report html:reports/html --cov-report xml:reports/coverage.xml --junitxml=reports/junit.xml --cov=challenge tests/api
-
-.PHONY: build
-build:			## Build locally the python artifact
-	python setup.py bdist_wheel
+# Utilidades
+clean:
+    @echo "Limpiando recursos..."
+    docker system prune -f
