@@ -1,0 +1,42 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main", "feature/**" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.9"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest locust
+
+    - name: Run Model Tests
+      run: pytest tests/model/ -v
+
+    - name: Run API Tests
+      run: pytest tests/api/ -v
+
+    - name: Stress Test
+      run: |
+        locust -f tests/stress/api_stress.py \
+          --host http://localhost:8000 \
+          --headless \
+          --users 10 \
+          --spawn-rate 1 \
+          --run-time 30s
