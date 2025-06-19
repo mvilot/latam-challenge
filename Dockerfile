@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.4
-FROM python:3.9-slim as builder
+FROM python:3.11-slim as builder
 
 WORKDIR /app
 COPY requirements.txt .
 
 RUN pip install --user -r requirements.txt
 
-FROM python:3.9-slim as runtime
+FROM python:3.11-slim as runtime
 
 WORKDIR /app
 
