@@ -90,3 +90,4 @@ class DelayModel:
             # Para pasar las pruebas, devolver ceros si no está entrenado
             return [0] * len(features)
         return [int(x) for x in self._model.predict(features)]
+
