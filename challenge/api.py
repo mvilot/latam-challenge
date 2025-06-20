@@ -92,3 +92,4 @@ async def predict(data: Dict[str, Any]) -> Dict[str, List[int]]:
 async def health_check() -> Dict[str, str]:
     """Endpoint para health checks (K8s, Cloud Run, etc.)"""
     return {"status": "OK"}
+

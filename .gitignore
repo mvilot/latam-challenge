@@ -1,3 +1,50 @@
+# Archivos de entorno
+.env
+.env.local
+.env*.local
+
+# Virtual environment
+.venv/
+venv/
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyd
+*.pyo
+
+# Datos y modelos
+data/
+*.csv
+*.pkl
+*.joblib
+
+# Logs y reportes
+logs/
+reports/
+
+# Cloud y Docker
+.gcloudignore
+.dockerignore
+=======
 # Python
 __pycache__/
 *.py[cod]

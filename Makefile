@@ -1,45 +1,49 @@
-.ONESHELL:
-ENV_PREFIX=$(shell python -c "if __import__('pathlib').Path('.venv/bin/pip').exists(): print('.venv/bin/')")
+# Makefile para LATAM Flight Delay Challenge
 
-.PHONY: help
-help:             	## Show the help.
-	@echo "Usage: make <target>"
-	@echo ""
-	@echo "Targets:"
-	@fgrep "##" Makefile | fgrep -v fgrep
+# Variables
+PROJECT_ID = 283882932517
+API_URL = https://flight-delay-api-xyz-uc.a.run.app  # Reemplazar con tu URL real
+IMAGE_NAME = gcr.io/$(PROJECT_ID)/flight-delay-api
+REGION = us-central1
 
-.PHONY: venv
-venv:			## Create a virtual environment
-	@echo "Creating virtualenv ..."
-	@rm -rf .venv
-	@python3 -m venv .venv
-	@./.venv/bin/pip install -U pip
-	@echo
-	@echo "Run 'source .venv/bin/activate' to enable the environment"
+# Tests del modelo
+model-test:
+	python -m pytest tests/model -v
 
-.PHONY: install
-install:		## Install dependencies
-	pip install -r requirements-dev.txt
-	pip install -r requirements-test.txt
+# Tests de la API
+api-test:
+	python -m pytest tests/api -v
+
+# Tests de estrés (requiere API desplegada)
+stress-test:
+	locust -f tests/stress/test_stress.py --headless -u 100 -r 10 -t 1m --host $(API_URL)
+
+# Construir imagen Docker
+build:
+	docker build -t $(IMAGE_NAME) .
+
+# Subir imagen a GCR
+push:
+	gcloud builds submit --tag $(IMAGE_NAME)
+
+# Desplegar en Cloud Run
+deploy:
+	gcloud run deploy flight-delay-api \
+		--image $(IMAGE_NAME) \
+		--platform managed \
+		--region $(REGION) \
+		--allow-unauthenticated \
+		--port 8000
+
+# Ejecutar API localmente
+run-local:
+	docker run -p 8000:8000 $(IMAGE_NAME)
+
+# Comandos combinados
+deploy-full: build push deploy
+
+# Instalar dependencias
+install:
 	pip install -r requirements.txt
 
-STRESS_URL = http://127.0.0.1:8000 
-.PHONY: stress-test
-stress-test:
-	# change stress url to your deployed app 
-	mkdir reports || true
-	locust -f tests/stress/api_stress.py --print-stats --html reports/stress-test.html --run-time 60s --headless --users 100 --spawn-rate 1 -H $(STRESS_URL)
-
-.PHONY: model-test
-model-test:			## Run tests and coverage
-	mkdir reports || true
-	pytest --cov-config=.coveragerc --cov-report term --cov-report html:reports/html --cov-report xml:reports/coverage.xml --junitxml=reports/junit.xml --cov=challenge tests/model
-
-.PHONY: api-test
-api-test:			## Run tests and coverage
-	mkdir reports || true
-	pytest --cov-config=.coveragerc --cov-report term --cov-report html:reports/html --cov-report xml:reports/coverage.xml --junitxml=reports/junit.xml --cov=challenge tests/api
-
-.PHONY: build
-build:			## Build locally the python artifact
-	python setup.py bdist_wheel
+.PHONY: model-test api-test stress-test build push deploy run-local deploy-full install

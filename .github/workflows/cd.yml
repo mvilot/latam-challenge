@@ -1,0 +1,42 @@
+name: CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'api.py'
+      - 'model.py'
+      - 'requirements.txt'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Auth GCP
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Build and Deploy
+      run: |
+        gcloud builds submit \
+          --tag gcr.io/${{ secrets.GCP_PROJECT_ID }}/flight-delay-api
+        
+        gcloud run deploy flight-delay-api \
+          --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/flight-delay-api \
+          --platform managed \
+          --region us-central1 \
+          --allow-unauthenticated \
+          --memory 512Mi \
+          --timeout 300s
